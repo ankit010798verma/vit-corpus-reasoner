@@ -14,12 +14,32 @@ random.seed(42)
 
 
 def _normalize(text: str) -> str:
-    """Normalize Unicode math/special chars so × matches x, ≈ matches ~, etc."""
+    """Normalize text: strip markdown formatting, Unicode chars, punctuation."""
+    import re
+    # Strip markdown bold/italic/headers so **16×16** matches 16×16
+    text = re.sub(r'\*{1,3}', '', text)
+    text = re.sub(r'^#{1,3}\s*', '', text, flags=re.MULTILINE)
+    text = re.sub(r'`([^`]*)`', r'\1', text)
     return (text.lower()
             .replace("×", "x").replace("✕", "x")
             .replace("≈", "~").replace("≤", "<=").replace("≥", ">=")
             .replace("%", " pct ").replace("−", "-")
             .replace("–", "-").replace("—", "-"))
+
+
+def _cost_stats(results: list[dict]) -> dict:
+    """Compute per-question cost stats directly from results list."""
+    costs = sorted(r["cost_usd"] for r in results)
+    n = len(costs)
+    if not n:
+        return {"mean": 0.0, "median": 0.0, "max": 0.0, "count": 0}
+    median = costs[n // 2] if n % 2 else (costs[n // 2 - 1] + costs[n // 2]) / 2
+    return {
+        "mean": round(sum(costs) / n, 5),
+        "median": round(median, 5),
+        "max": round(max(costs), 5),
+        "count": n,
+    }
 
 
 def score_answer(system_output: str, gold_answer: str, tier: int) -> float:
@@ -87,7 +107,7 @@ def run_eval(budget_mode: BudgetMode, output_dir: Path) -> dict:
         "total_cost_usd": round(tracker.total_usd(), 4),
         "overall_accuracy": overall_accuracy,
         "accuracy_by_tier": tier_summary,
-        "cost_stats": tracker.per_question_stats(),
+        "cost_stats": _cost_stats(results),
         "timestamp": datetime.utcnow().isoformat(),
         "n_questions": len(results),
     }

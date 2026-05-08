@@ -27,5 +27,9 @@ build/
 # Eval outputs
 eval/results/
 
+# Screenshots and Playwright captures
+screenshots/
+.playwright-mcp/
+
 # Planning docs
 Arch_Plan/

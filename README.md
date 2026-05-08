@@ -45,6 +45,9 @@ python scripts/03_build_index.py
 
 # 4. Run evaluation at 3 budget levels + generate budget curve
 python scripts/04_run_evaluation.py
+
+# 5. Generate human-readable eval report (eval/results/eval_report.md)
+python scripts/05_generate_report.py
 ```
 
 ## Run the API
@@ -102,6 +105,21 @@ curl -X POST http://localhost:8000/query \
 curl http://localhost:8000/costs
 ```
 
-Returns total USD spent, breakdown by model and tier, and per-question statistics.
+Returns total USD spent, breakdown by model and tier, and per-question statistics (mean/median/max per question).
 
-Evaluation results (including budget curve PNG) are saved to `eval/results/`.
+## Evaluation Results
+
+Pre-run results are in `eval/results/`:
+
+| File | Description |
+|------|-------------|
+| `eval_report.md` | Human-readable Q/gold/output/score table for all 40 questions |
+| `budget_curve.png` | Quality-vs-cost curve across LOW/MEDIUM/HIGH |
+| `eval_high_*.json` | Raw JSON with per-question costs, latencies, scores |
+
+Latest results (HIGH budget mode): **40.3% accuracy**, $0.31 total, mean $0.0078/question.
+
+Regenerate after a new eval run:
+```bash
+python scripts/05_generate_report.py
+```

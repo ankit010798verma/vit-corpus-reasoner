@@ -1,10 +1,15 @@
 """FastAPI application with lifespan startup to load all indexes."""
 from contextlib import asynccontextmanager
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from src.config import settings
 from src.knowledge.store import init_db
 from src.knowledge.indexer import load_indexes
+
+FRONTEND_DIR = Path(__file__).parent.parent.parent / "frontend"
 
 
 @asynccontextmanager
@@ -29,3 +34,10 @@ app = FastAPI(
 
 from src.api.routes import router
 app.include_router(router)
+
+if FRONTEND_DIR.exists():
+    app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+    @app.get("/")
+    def index():
+        return FileResponse(FRONTEND_DIR / "index.html")

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VIT Corpus Reasoner</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f172a;
+      --bg2:     #1e293b;
+      --bg3:     #273549;
+      --border:  #334155;
+      --text:    #f8fafc;
+      --muted:   #94a3b8;
+      --accent:  #3b82f6;
+      --accent2: #2563eb;
+      --success: #22c55e;
+      --error:   #ef4444;
+
+      --t1: #64748b; --t2: #3b82f6; --t3: #f97316; --t4: #a855f7;
+      --t5: #22c55e; --t6: #6366f1; --t7: #ef4444; --t8: #14b8a6;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .page { max-width: 900px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 24px 0 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .header-dot-wrap { padding-top: 4px; }
+    .health-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0;
+      transition: background 0.4s;
+    }
+    .health-dot.ok  { background: var(--success); box-shadow: 0 0 6px var(--success); }
+    .health-dot.err { background: var(--error);   box-shadow: 0 0 6px var(--error); }
+    header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.03em; }
+    .header-sub {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--muted); font-size: 12px; margin-top: 3px;
+    }
+    .index-status {
+      font-size: 11px; padding: 1px 7px; border-radius: 10px;
+      background: var(--bg3); border: 1px solid var(--border);
+    }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      padding: 11px 16px;
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      margin-bottom: 20px;
+      min-height: 46px; align-items: center;
+    }
+    .stat-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 20px;
+      background: var(--bg3); border: 1px solid var(--border);
+      font-size: 12px; white-space: nowrap;
+    }
+    .stat-chip .lbl { color: var(--muted); }
+    .stat-chip .val { color: var(--text); font-weight: 600; }
+    .stats-loading { color: var(--muted); font-size: 12px; }
+
+    /* ── Query card ── */
+    .query-card {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 24px;
+    }
+    .field-label {
+      display: block; color: var(--muted); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;
+    }
+    textarea {
+      width: 100%; resize: vertical; min-height: 76px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: inherit; font-size: 14px;
+      padding: 10px 12px; outline: none; transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: var(--accent); }
+    textarea::placeholder { color: #475569; }
+
+    .textarea-hint {
+      color: var(--muted); font-size: 11px; margin-top: 5px; text-align: right;
+    }
+    kbd {
+      font-family: inherit; font-size: 10px;
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 3px;
+      padding: 1px 4px;
+    }
+
+    .controls {
+      display: flex; align-items: flex-end; gap: 12px; margin-top: 14px;
+    }
+    .select-group { display: flex; flex-direction: column; gap: 4px; }
+    label[for="budget"] {
+      color: var(--muted); font-size: 11px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    select#budget {
+      background: var(--bg); border: 1px solid var(--border); border-radius: 6px;
+      color: var(--text); font-family: inherit; font-size: 13px;
+      padding: 8px 10px; outline: none; cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    select#budget:focus { border-color: var(--accent); }
+
+    #ask-btn {
+      margin-left: auto;
+      background: var(--accent); color: #fff; border: none; border-radius: 6px;
+      padding: 9px 24px; font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s, opacity 0.2s;
+      white-space: nowrap;
+    }
+    #ask-btn:hover  { background: var(--accent2); }
+    #ask-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Spinner ── */
+    .spinner-wrap {
+      display: none; align-items: center; gap: 10px;
+      padding: 20px 0; color: var(--muted);
+    }
+    .spinner-wrap.active { display: flex; }
+    .spinner {
+      width: 18px; height: 18px; border: 2px solid var(--border);
+      border-top-color: var(--accent); border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Answer panel ── */
+    #answer-panel { display: none; }
+    #answer-panel.visible { display: block; }
+
+    .answer-meta {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+      margin-bottom: 12px;
+    }
+    .tier-badge {
+      padding: 3px 11px; border-radius: 20px;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #fff;
+    }
+    .tier-badge.t1{background:var(--t1)} .tier-badge.t2{background:var(--t2)}
+    .tier-badge.t3{background:var(--t3)} .tier-badge.t4{background:var(--t4)}
+    .tier-badge.t5{background:var(--t5)} .tier-badge.t6{background:var(--t6)}
+    .tier-badge.t7{background:var(--t7)} .tier-badge.t8{background:var(--t8)}
+
+    .meta-chip {
+      font-size: 12px; color: var(--muted);
+      padding: 2px 8px; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+    }
+
+    .answer-box {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+      padding: 20px; margin-bottom: 16px;
+    }
+    .answer-text {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      line-height: 1.75; font-size: 14px;
+    }
+    .answer-text h2 {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--muted);
+      margin: 16px 0 6px; padding-bottom: 4px;
+      border-bottom: 1px solid var(--border);
+    }
+    .answer-text h2:first-child { margin-top: 0; }
+    .answer-text p  { margin-bottom: 10px; }
+    .answer-text ul { padding-left: 20px; margin-bottom: 10px; }
+    .answer-text li { margin-bottom: 3px; }
+    .answer-text strong { color: var(--text); font-weight: 600; }
+    .answer-text code {
+      font-family: 'SF Mono', 'Fira Code', monospace; font-size: 12px;
+      background: var(--bg3); border-radius: 3px; padding: 1px 5px;
+    }
+    .answer-text .md-hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    .answer-error { color: var(--error); font-family: inherit; }
+
+    /* ── Citations ── */
+    .citations-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--muted); margin-bottom: 10px;
+    }
+    .citation-item {
+      background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 14px; margin-bottom: 8px;
+    }
+    .citation-header { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+    .citation-num  { color: var(--accent); font-weight: 700; font-size: 12px; flex-shrink: 0; }
+    .citation-title-text { font-weight: 600; font-size: 13px; }
+    .citation-meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .citation-quote {
+      margin-top: 8px; padding: 8px 10px;
+      background: var(--bg3); border-left: 2px solid var(--accent);
+      border-radius: 0 4px 4px 0;
+      color: var(--muted); font-size: 12px; line-height: 1.6;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      /* Standard property fallback */
+      max-height: calc(1.6em * 4 + 16px);
+    }
+
+    /* ── Divider ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      .controls { flex-wrap: wrap; }
+      select#budget { width: 100%; }
+      #ask-btn { margin-left: 0; width: 100%; }
+      .textarea-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Header -->
+  <header>
+    <div class="header-dot-wrap">
+      <div id="health-dot" class="health-dot"
+           aria-label="System health status" role="status" title="Checking…"></div>
+    </div>
+    <div>
+      <h1>VIT Corpus Reasoner</h1>
+      <div class="header-sub">
+        Research comprehension for top-100 Vision Transformer papers
+        <span id="index-status" class="index-status" style="display:none"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Corpus stats bar -->
+  <div class="stats-bar" id="stats-bar">
+    <span class="stats-loading">Loading corpus stats…</span>
+  </div>
+
+  <!-- Query card -->
+  <div class="query-card">
+    <label class="field-label" for="question">Question</label>
+    <textarea
+      id="question"
+      placeholder="e.g. What patch size does ViT use?
+e.g. Which papers report conflicting accuracy on ImageNet?
+e.g. Which standard ViT benchmarks are absent from the corpus?"
+      rows="4"
+    ></textarea>
+    <div class="textarea-hint">
+      <kbd>⌘</kbd>+<kbd>↵</kbd> to submit
+    </div>
+    <div class="controls">
+      <div class="select-group">
+        <label for="budget">Budget mode</label>
+        <select id="budget">
+          <option value="low">LOW — BM25 + Haiku (cheapest)</option>
+          <option value="medium" selected>MEDIUM — Hybrid + mixed models</option>
+          <option value="high">HIGH — Full pipeline + Sonnet</option>
+        </select>
+      </div>
+      <button id="ask-btn" type="button">Ask</button>
+    </div>
+  </div>
+
+  <!-- Spinner -->
+  <div class="spinner-wrap" id="spinner" role="status" aria-live="polite">
+    <div class="spinner"></div>
+    <span>Reasoning…</span>
+  </div>
+
+  <!-- Answer panel -->
+  <div id="answer-panel" aria-live="polite">
+    <div class="answer-meta" id="answer-meta"></div>
+    <div class="answer-box">
+      <div class="answer-text" id="answer-text"></div>
+    </div>
+    <div id="citations-section"></div>
+  </div>
+
+</div>
+<script>
+  const TIER_LABELS = {
+    1:'T1 · Factual', 2:'T2 · Aggregation', 3:'T3 · Conflict',
+    4:'T4 · Temporal', 5:'T5 · Citation Graph', 6:'T6 · Multi-hop',
+    7:'T7 · Negation', 8:'T8 · Quantitative',
+  };
+
+  function fmtCost(usd) {
+    if (usd == null) return '';
+    if (usd === 0) return '$0.00';
+    if (usd < 0.0001) return '<$0.0001';
+    if (usd < 0.001)  return '$' + usd.toFixed(5);
+    if (usd < 0.01)   return '$' + usd.toFixed(4);
+    return '$' + usd.toFixed(3);
+  }
+
+  function escHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Health ──
+  async function checkHealth() {
+    const dot = document.getElementById('health-dot');
+    const badge = document.getElementById('index-status');
+    try {
+      const res = await fetch('/health');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+      const allOk = d.chroma_loaded && d.bm25_loaded && d.graph_loaded;
+      dot.className = 'health-dot ' + (allOk ? 'ok' : 'err');
+      if (!allOk) {
+        const missing = [
+          !d.chroma_loaded && 'chroma',
+          !d.bm25_loaded   && 'bm25',
+          !d.graph_loaded  && 'graph',
+        ].filter(Boolean).join(', ');
+        dot.title = 'Indexes not loaded: ' + missing;
+        badge.textContent = 'indexes missing: ' + missing;
+        badge.style.display = '';
+      } else {
+        dot.title = 'All indexes loaded';
+      }
+    } catch (e) {
+      dot.className = 'health-dot err';
+      dot.title = 'API unreachable: ' + e.message;
+      badge.textContent = 'API unreachable';
+      badge.style.display = '';
+    }
+  }
+
+  // ── Stats ──
+  async function loadStats() {
+    const bar = document.getElementById('stats-bar');
+    try {
+      const res = await fetch('/corpus/stats');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const d = await res.json();
+      const chips = [
+        ['Papers',          d.papers],
+        ['Chunks',          d.chunks],
+        ['Model facts',     d.model_facts],
+        ['Dataset uses',    d.dataset_uses],
+        ['Benchmarks',      d.benchmark_results],
+        ['Citation links',  d.citation_edges],
+      ];
+      bar.innerHTML = chips.map(([lbl, val]) =>
+        `<span class="stat-chip">
+           <span class="lbl">${lbl}</span>
+           <span class="val">${(val ?? 0).toLocaleString()}</span>
+         </span>`
+      ).join('');
+    } catch {
+      bar.innerHTML = '<span class="stats-loading">Could not load corpus stats</span>';
+    }
+  }
+
+  // ── Query ──
+  async function runQuery() {
+    const q = document.getElementById('question').value.trim();
+    if (!q) { document.getElementById('question').focus(); return; }
+
+    const budget_mode = document.getElementById('budget').value;
+    const btn     = document.getElementById('ask-btn');
+    const spinner = document.getElementById('spinner');
+    const panel   = document.getElementById('answer-panel');
+
+    btn.disabled = true;
+    spinner.className = 'spinner-wrap active';
+    panel.classList.remove('visible');
+
+    const t0 = Date.now();
+    try {
+      const res  = await fetch('/query', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({question: q, budget_mode}),
+      });
+      const data = await res.json();
+      const elapsedStr = ((Date.now() - t0) / 1000).toFixed(2) + 's';
+
+      if (!res.ok) {
+        renderError(data.detail ?? 'Unknown error', elapsedStr);
+      } else {
+        renderAnswer(data, elapsedStr);
+      }
+    } catch (err) {
+      renderError(String(err), ((Date.now() - t0) / 1000).toFixed(2) + 's');
+    } finally {
+      btn.disabled = false;
+      spinner.className = 'spinner-wrap';
+    }
+  }
+
+  function renderMarkdown(text) {
+    // Escape HTML entities first, then re-apply markdown as HTML
+    function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    const lines = text.split('\n');
+    let html = '';
+    let inUl = false;
+    for (let i = 0; i < lines.length; i++) {
+      let line = lines[i];
+      // Headings
+      if (/^### (.+)/.test(line)) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        html += `<h3>${esc(line.slice(4).trim())}</h3>`;
+        continue;
+      }
+      if (/^## (.+)/.test(line)) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        html += `<h2>${esc(line.slice(3).trim())}</h2>`;
+        continue;
+      }
+      if (/^# (.+)/.test(line)) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        html += `<h2>${esc(line.slice(2).trim())}</h2>`;
+        continue;
+      }
+      // Bullet lists (-, *, or •, with optional leading spaces)
+      const bulletMatch = line.match(/^\s*[\-\*•]\s+(.+)/);
+      if (bulletMatch) {
+        if (!inUl) { html += '<ul>'; inUl = true; }
+        html += `<li>${inlineMarkdown(esc(bulletMatch[1].trim()))}</li>`;
+        continue;
+      }
+      // Numbered lists
+      const numMatch = line.match(/^\s*\d+\.\s+(.+)/);
+      if (numMatch) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        html += `<li>${inlineMarkdown(esc(numMatch[1].trim()))}</li>`;
+        continue;
+      }
+      // Horizontal rule
+      if (/^---+$/.test(line.trim())) {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        html += '<hr class="md-hr">';
+        continue;
+      }
+      // Empty line → paragraph break
+      if (line.trim() === '') {
+        if (inUl) { html += '</ul>'; inUl = false; }
+        html += '<br>';
+        continue;
+      }
+      // Regular paragraph line
+      if (inUl) { html += '</ul>'; inUl = false; }
+      html += `<p>${inlineMarkdown(esc(line))}</p>`;
+    }
+    if (inUl) html += '</ul>';
+    return html;
+  }
+
+  function inlineMarkdown(s) {
+    // **bold**, *italic*, `code`
+    return s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>');
+  }
+
+  function renderError(msg, elapsed) {
+    const panel = document.getElementById('answer-panel');
+    document.getElementById('answer-meta').innerHTML =
+      `<span class="meta-chip">${elapsed}</span>`;
+    const el = document.getElementById('answer-text');
+    el.className = 'answer-text answer-error';
+    el.textContent = 'Error: ' + msg;
+    document.getElementById('citations-section').innerHTML = '';
+    panel.classList.add('visible');
+  }
+
+  function renderAnswer(data, elapsed) {
+    const panel = document.getElementById('answer-panel');
+    const tier  = data.tier ?? 1;
+    const tierLabel = TIER_LABELS[tier] ?? `T${tier}`;
+    const costStr   = fmtCost(data.cost_usd);
+
+    // Meta row
+    document.getElementById('answer-meta').innerHTML =
+      `<span class="tier-badge t${tier}">${escHtml(tierLabel)}</span>` +
+      `<span class="meta-chip">${elapsed}</span>` +
+      (costStr ? `<span class="meta-chip">${costStr}</span>` : '');
+
+    // Answer text — strip embedded "Sources:" block if citations are shown separately
+    const el = document.getElementById('answer-text');
+    el.className = 'answer-text';
+    let answerText = data.answer ?? '';
+    if ((data.citations ?? []).filter(c => c.title).length > 0) {
+      const srcIdx = answerText.search(/\n\n?Sources:/);
+      if (srcIdx !== -1) answerText = answerText.slice(0, srcIdx).trimEnd();
+    }
+    el.innerHTML = renderMarkdown(answerText);
+
+    // Citations
+    const sec   = document.getElementById('citations-section');
+    const cites = (data.citations ?? []).filter(c => c.title);
+    if (cites.length) {
+      sec.innerHTML =
+        `<hr class="divider"><p class="citations-title">Sources (${cites.length})</p>` +
+        cites.map((c, i) => {
+          const yr   = (c.year != null && c.year !== '') ? `${c.year}` : '';
+          const sec2 = c.section && c.section !== 'citation_graph' ? escHtml(c.section) : '';
+          const meta = [yr, sec2].filter(Boolean).join(' · ');
+          const qt   = c.quote
+            ? `<div class="citation-quote">${escHtml(c.quote)}</div>` : '';
+          return `<div class="citation-item">
+            <div class="citation-header">
+              <span class="citation-num">[${i+1}]</span>
+              <span class="citation-title-text">${escHtml(c.title)}</span>
+            </div>
+            ${meta ? `<div class="citation-meta">${meta}</div>` : ''}
+            ${qt}
+          </div>`;
+        }).join('');
+    } else {
+      sec.innerHTML = '';
+    }
+
+    panel.classList.add('visible');
+    // Smooth scroll to answer
+    panel.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  // ── Events ──
+  document.getElementById('ask-btn').addEventListener('click', runQuery);
+  document.getElementById('question').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) runQuery();
+  });
+
+  // ── Init ──
+  checkHealth();
+  loadStats();
+</script>
+</body>
+</html>
