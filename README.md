@@ -31,9 +31,16 @@ cp .env.example .env
 
 PDFs are **not stored in git** (too large). `corpus/manifest.csv` is committed and contains the full paper list with arXiv IDs and open-access URLs for all 100 papers. Run step 1 below to download them locally.
 
-- 66/100 papers download automatically from arXiv or open-access URLs
-- 34/100 are behind publisher paywalls and will be skipped (the system still works with 66 papers)
-- Papers are saved to `corpus/pdfs/<paper_id>.pdf`
+**How papers are discovered and downloaded:**
+1. `scripts/01_assemble_corpus.py` queries the **[Semantic Scholar API](https://api.semanticscholar.org/)** (free, no key needed) to find the top 100 most-cited Vision Transformer papers
+2. For each paper it tries to download the PDF in this order:
+   - **arXiv** (`https://arxiv.org/pdf/<arxiv_id>.pdf`) — primary source for most papers
+   - **Open access PDF** URL returned by Semantic Scholar (publisher-hosted preprints)
+3. Papers are saved to `corpus/pdfs/<paper_id>.pdf`
+
+- 66/100 papers are freely available and download automatically (~10 min)
+- 34/100 are behind publisher paywalls and will be skipped — the system works with the 66 accessible papers
+- No accounts or API keys required for corpus download
 
 ## Build Steps (run in order)
 
