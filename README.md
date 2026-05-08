@@ -128,7 +128,15 @@ Pre-run results are in `eval/results/`:
 | `budget_curve.png` | Quality-vs-cost curve across LOW/MEDIUM/HIGH |
 | `eval_high_*.json` | Raw JSON with per-question costs, latencies, scores |
 
-Latest results (HIGH budget mode): **40.3% accuracy**, $0.31 total, mean $0.0078/question.
+Latest results across budget modes (40 questions, 8 tiers):
+
+| Mode | Accuracy | Total Cost | Mean/question |
+|------|----------|------------|---------------|
+| LOW | 74.0% | $0.04 | $0.00096 |
+| MEDIUM | 75.7% | $0.15 | $0.00385 |
+| HIGH | **77.9%** | $0.23 | $0.00577 |
+
+Per-tier accuracy (HIGH mode): T1=83.6%, T2=82.9%, T3=60.6%, T4=58.5%, T5=66.3%, T6=85.0%, T7=87.6%, T8=98.8%
 
 Regenerate after a new eval run:
 ```bash
