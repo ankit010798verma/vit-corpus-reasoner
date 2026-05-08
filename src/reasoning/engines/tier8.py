@@ -147,7 +147,7 @@ def answer(question: str, budget_mode=None) -> dict:
             if any(w in q for w in ["max", "most", "highest", "top"]):
                 answer_text = (
                     f"The most cited paper in the corpus is:\n"
-                    f"  \"{top['title']}\" ({int(top['year']) if top['year'] else 'N/A'}) — {int(top['citations'])} citations\n\n"
+                    f"  \"{top['title']}\" ({int(top['year']) if pd.notna(top['year']) else 'N/A'}) — {int(top['citations'])} citations\n\n"
                     f"Corpus-wide citation stats ({len(df)} papers):\n"
                     f"  • Max: {int(desc['max'])}\n"
                     f"  • Mean: {desc['mean']:.0f}\n"
@@ -155,17 +155,19 @@ def answer(question: str, budget_mode=None) -> dict:
                     f"  • Min: {int(desc['min'])}"
                 )
                 evidence_paper = top
+                rank_label = "highest in the corpus"
             elif any(w in q for w in ["min", "least", "lowest", "fewest"]):
                 bottom = df.iloc[-1]
                 answer_text = (
                     f"The least cited paper in the corpus is:\n"
-                    f"  \"{bottom['title']}\" ({int(bottom['year']) if bottom['year'] else 'N/A'}) — {int(bottom['citations'])} citations\n\n"
+                    f"  \"{bottom['title']}\" ({int(bottom['year']) if pd.notna(bottom['year']) else 'N/A'}) — {int(bottom['citations'])} citations\n\n"
                     f"Corpus-wide citation stats ({len(df)} papers):\n"
                     f"  • Min: {int(desc['min'])}\n"
                     f"  • Mean: {desc['mean']:.0f}\n"
                     f"  • Max: {int(desc['max'])}"
                 )
                 evidence_paper = bottom
+                rank_label = "lowest in the corpus"
             else:
                 answer_text = (
                     f"Citation count statistics across {len(df)} papers:\n"
@@ -176,15 +178,16 @@ def answer(question: str, budget_mode=None) -> dict:
                     f"  • Top paper: \"{top['title']}\" — {int(top['citations'])} citations"
                 )
                 evidence_paper = top
+                rank_label = "highest in the corpus"
             return {
                 "answer": answer_text,
                 "data": {"max_citations": int(desc["max"]), "paper_count": len(df)},
                 "evidence": [{
                     "paper_id": evidence_paper["id"],
                     "title": evidence_paper["title"],
-                    "year": int(evidence_paper["year"]) if evidence_paper["year"] else "",
+                    "year": int(evidence_paper["year"]) if pd.notna(evidence_paper["year"]) else "",
                     "section": "papers",
-                    "quote": f"{int(evidence_paper['citations'])} citations — highest in the corpus",
+                    "quote": f"{int(evidence_paper['citations'])} citations — {rank_label}",
                 }],
             }
 
