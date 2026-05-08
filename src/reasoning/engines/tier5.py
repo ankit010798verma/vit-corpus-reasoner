@@ -19,10 +19,19 @@ _ABBREV_TITLE = {
 
 
 def _resolve_paper(mention: str) -> str | None:
-    """Resolve paper mention to paper_id, trying abbreviation map first."""
+    """Resolve paper mention to paper_id, using SQL LIKE for known abbreviations."""
     title_frag = _ABBREV_TITLE.get(mention.lower())
-    pid = find_paper_id(title_frag) if title_frag else None
-    return pid or find_paper_id(mention)
+    if title_frag:
+        from sqlalchemy import text as _text
+        from src.knowledge.store import get_engine
+        with get_engine().connect() as conn:
+            row = conn.execute(
+                _text("SELECT id FROM papers WHERE title LIKE :frag LIMIT 1"),
+                {"frag": f"%{title_frag}%"}
+            ).fetchone()
+        if row:
+            return row[0]
+    return find_paper_id(mention)
 
 
 def answer(question: str, budget_mode=None) -> dict:

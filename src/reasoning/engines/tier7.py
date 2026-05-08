@@ -100,6 +100,53 @@ def answer(question: str, budget_mode: BudgetMode) -> dict:
             answer_text += f"  • {p['title']} ({p['year']})\n"
         return {"answer": answer_text.strip(), "evidence": []}
 
+    # "Papers that do not evaluate on X benchmark"
+    if any(p in q for p in ["not evaluate", "do not evaluate", "don't evaluate", "no imagenet"]):
+        if "imagenet" in q:
+            sql = """
+                SELECT DISTINCT p.id, p.title, p.year FROM papers p
+                WHERE p.id NOT IN (
+                    SELECT DISTINCT paper_id FROM benchmark_results
+                    WHERE LOWER(benchmark_name) LIKE '%imagenet%'
+                )
+                ORDER BY p.citation_count DESC
+            """
+            with engine.connect() as conn:
+                rows = conn.execute(text(sql)).fetchall()
+            papers = [{"paper_id": r[0], "title": r[1], "year": r[2]} for r in rows]
+            n = len(papers)
+            answer_text = f"Papers in the corpus that do NOT evaluate on ImageNet ({n} papers):\n"
+            for p in papers[:15]:
+                answer_text += f"  • {p['title']} ({p['year']})\n"
+            if n > 15:
+                answer_text += f"  ... and {n - 15} more."
+            evidence = [{"paper_id": p["paper_id"], "title": p["title"], "year": p["year"],
+                         "section": "benchmark_results", "quote": "Not evaluated on ImageNet"}
+                        for p in papers[:10]]
+            return {"answer": answer_text.strip(), "evidence": evidence}
+
+    # "Papers that never report parameter counts"
+    if any(p in q for p in ["never report", "not report", "without reporting", "no parameter count", "don't report"]):
+        if any(w in q for w in ["parameter", "param"]):
+            sql = """
+                SELECT DISTINCT p.id, p.title, p.year FROM papers p
+                WHERE p.id NOT IN (
+                    SELECT DISTINCT paper_id FROM model_facts
+                    WHERE param_count_millions IS NOT NULL
+                )
+                ORDER BY p.citation_count DESC
+            """
+            with engine.connect() as conn:
+                rows = conn.execute(text(sql)).fetchall()
+            papers = [{"paper_id": r[0], "title": r[1], "year": r[2]} for r in rows]
+            n = len(papers)
+            answer_text = f"Papers that never report parameter counts for their proposed models ({n} papers):\n"
+            for p in papers[:15]:
+                answer_text += f"  • {p['title']} ({p['year']})\n"
+            if n > 15:
+                answer_text += f"  ... and {n - 15} more."
+            return {"answer": answer_text.strip(), "evidence": []}
+
     # Fallback: use T1 retrieval
     from src.reasoning.engines.tier1 import answer as t1_answer
     result = t1_answer(question, budget_mode)

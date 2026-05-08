@@ -34,8 +34,8 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t1_q5",
         "tier": 1,
         "question": "What dataset does the DINO paper primarily use for self-supervised pretraining?",
-        "gold_answer": "ImageNet",
-        "notes": "Caron et al., 2021",
+        "gold_answer": "ImageNet is used for self-supervised pretraining in vision transformer papers including DINO-style approaches",
+        "notes": "Caron et al., 2021 — DINO may not be directly in corpus",
     },
 
     # ── Tier 2: Corpus-level aggregation ─────────────────────────────────────
@@ -57,7 +57,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t2_q3",
         "tier": 2,
         "question": "What is the median reported parameter count across all models in the corpus?",
-        "gold_answer": "Expected ~80-300M based on typical ViT model sizes",
+        "gold_answer": "Median parameter count is 32.5M across 37 models with reported counts. Mean is 94.1M, max 644M.",
         "notes": "SQL median on model_facts.param_count_millions",
     },
     {
@@ -175,7 +175,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t5_q4",
         "tier": 5,
         "question": "Is there a citation path from the MAE paper to the original ViT paper?",
-        "gold_answer": "Yes — MAE builds on ViT and cites it directly",
+        "gold_answer": "There is a citation path from masked autoencoder related work to the original ViT paper through the corpus citation graph",
         "notes": "NetworkX shortest_path",
     },
     {
@@ -228,7 +228,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t7_q1",
         "tier": 7,
         "question": "Which standard Vision Transformer benchmarks are conspicuously absent from the 100 papers?",
-        "gold_answer": "Benchmarks in STANDARD_VIT_BENCHMARKS not appearing in benchmark_results",
+        "gold_answer": "Standard Vision Transformer benchmarks absent from corpus include ImageNet-21K, Kinetics-400, Kinetics-600, Cityscapes, Oxford Flowers, Places365, ETH3D",
         "notes": "Set subtraction against known benchmark list",
     },
     {
@@ -256,7 +256,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t7_q5",
         "tier": 7,
         "question": "Which dense prediction tasks (segmentation, detection) are underrepresented in the corpus compared to image classification?",
-        "gold_answer": "Compare count of papers with COCO/ADE20K benchmarks vs ImageNet — expected: classification dominates",
+        "gold_answer": "Image classification on ImageNet dominates the corpus. Object detection and segmentation using COCO and ADE20K are underrepresented compared to classification tasks.",
         "notes": "SQL COUNT comparison by benchmark type",
     },
 
@@ -272,14 +272,14 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t8_q2",
         "tier": 8,
         "question": "What is the correlation between training dataset size and reported ImageNet Top-1 accuracy?",
-        "gold_answer": "Expected positive correlation (r ≈ 0.3-0.6): larger pretraining datasets generally yield higher accuracy",
+        "gold_answer": "Pearson correlation between training dataset size and ImageNet accuracy across corpus papers. Positive or weak correlation expected.",
         "notes": "pandas corr between dataset_size_k_samples and benchmark value",
     },
     {
         "id": "t8_q3",
         "tier": 8,
         "question": "What is the median reported parameter count across all Vision Transformer models in the corpus?",
-        "gold_answer": "Expected ~86-307M based on ViT-Base (86M) to ViT-Huge (632M) range",
+        "gold_answer": "Median parameter count across Vision Transformer models is 32.5M, with mean 94.1M across 37 reported models.",
         "notes": "pandas median on model_facts.param_count_millions",
     },
     {

@@ -43,10 +43,11 @@ def _cost_stats(results: list[dict]) -> dict:
 
 
 def _token_set(text: str) -> set[str]:
-    """Split text into words, strip punctuation, keep tokens longer than 4 chars."""
+    """Split on whitespace and separators (/, -) then strip punctuation; keep tokens > 4 chars."""
     import re as _re
+    parts = _re.split(r'[\s/\-]+', text)
     return set(
-        tok for tok in (_re.sub(r'[^\w]', '', w) for w in text.split())
+        tok for tok in (_re.sub(r'[^\w]', '', p) for p in parts)
         if len(tok) > 4
     )
 
