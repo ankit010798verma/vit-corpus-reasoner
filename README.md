@@ -29,12 +29,16 @@ cp .env.example .env
 
 ## Corpus Path
 
-Papers are stored in `corpus/pdfs/`. The manifest is at `corpus/manifest.csv` with columns: `id, title, authors, year, venue, citation_count, source_url`.
+PDFs are **not stored in git** (too large). `corpus/manifest.csv` is committed and contains the full paper list with arXiv IDs and open-access URLs for all 100 papers. Run step 1 below to download them locally.
+
+- 66/100 papers download automatically from arXiv or open-access URLs
+- 34/100 are behind publisher paywalls and will be skipped (the system still works with 66 papers)
+- Papers are saved to `corpus/pdfs/<paper_id>.pdf`
 
 ## Build Steps (run in order)
 
 ```bash
-# 1. Download top-100 ViT papers + manifest.csv (free, ~10 min)
+# 1. Download PDFs for the 100 papers in corpus/manifest.csv (free, ~10 min)
 python scripts/01_assemble_corpus.py
 
 # 2. Extract text chunks + structured facts via LLM (needs API key, ~$1.50)
