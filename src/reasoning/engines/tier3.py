@@ -47,6 +47,41 @@ def answer(question: str, budget_mode: BudgetMode) -> dict:
                                   "section": "results", "quote": f"{bench} {metric}: {val:.1f}% (SOTA claim)"})
         return {"answer": "\n".join(answer_lines), "evidence": evidence[:15]}
 
+    # "Papers outperforming X with fewer parameters"
+    if any(p in q for p in ["outperform", "fewer param", "fewer parameter", "less param", "lower param"]):
+        sql = """
+            SELECT DISTINCT p.id, p.title, p.year, br.value, mf.param_count_millions
+            FROM papers p
+            JOIN benchmark_results br ON br.paper_id = p.id
+            JOIN model_facts mf ON mf.paper_id = p.id
+            WHERE LOWER(br.benchmark_name) LIKE '%imagenet%'
+              AND LOWER(br.metric_name) LIKE '%top-1%'
+              AND br.value > 80.0
+              AND mf.param_count_millions IS NOT NULL
+              AND mf.param_count_millions < 86.0
+            ORDER BY br.value DESC
+        """
+        with engine.connect() as conn:
+            rows = conn.execute(text(sql)).fetchall()
+        if rows:
+            lines = ["Papers reporting >80% ImageNet Top-1 accuracy with fewer than 86M parameters:"]
+            evidence = []
+            seen = set()
+            for r in rows[:15]:
+                pid, title, year, acc, params = r
+                if pid not in seen:
+                    seen.add(pid)
+                    lines.append(f"  • {title} ({year or 'n.d.'}): {acc:.1f}% Top-1, {params:.0f}M params")
+                    evidence.append({"paper_id": pid, "title": title, "year": year or "",
+                                     "section": "results", "quote": f"ImageNet Top-1: {acc:.1f}%, params: {params:.0f}M"})
+            return {"answer": "\n".join(lines), "evidence": evidence}
+        return {
+            "answer": "No papers found with >80% ImageNet Top-1 accuracy and fewer than 86M parameters "
+                      "in the structured database. The required data (benchmark + param count per paper) "
+                      "may not be co-extracted for most papers.",
+            "evidence": [],
+        }
+
     # Find pairs of papers with same benchmark but notably different values
     sql = """
         SELECT
