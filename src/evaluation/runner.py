@@ -42,6 +42,15 @@ def _cost_stats(results: list[dict]) -> dict:
     }
 
 
+def _token_set(text: str) -> set[str]:
+    """Split text into words, strip punctuation, keep tokens longer than 4 chars."""
+    import re as _re
+    return set(
+        tok for tok in (_re.sub(r'[^\w]', '', w) for w in text.split())
+        if len(tok) > 4
+    )
+
+
 def score_answer(system_output: str, gold_answer: str, tier: int) -> float:
     """Simple scoring: check if key terms from gold answer appear in system output."""
     if not system_output or system_output.startswith("No "):
@@ -49,18 +58,14 @@ def score_answer(system_output: str, gold_answer: str, tier: int) -> float:
     sys_lower = _normalize(system_output)
     gold_lower = _normalize(gold_answer)
 
-    # For T5 (deterministic graph): check if specific paper names mentioned
-    # For T2/T7/T8 (SQL-based): check if numbers/dataset names present
-    # General: count keyword overlap
-    gold_words = set(w for w in gold_lower.split() if len(w) > 4)
-    sys_words = set(sys_lower.split())
+    gold_words = _token_set(gold_lower)
+    sys_words = _token_set(sys_lower)
     if not gold_words:
         return 0.5  # no gold to compare
     overlap = len(gold_words & sys_words) / len(gold_words)
-    # Penalize empty or error answers
     if len(system_output) < 20:
         return 0.0
-    return min(1.0, overlap * 1.5)  # boost partial matches slightly
+    return min(1.0, overlap * 1.5)
 
 
 def run_eval(budget_mode: BudgetMode, output_dir: Path) -> dict:

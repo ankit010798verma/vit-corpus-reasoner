@@ -5,6 +5,25 @@ from src.query.paper_resolver import find_paper_id
 from src.knowledge.models import Paper
 from src.knowledge.store import get_session
 
+# Short abbreviation → title fragment for fuzzy lookup (3-char names fail regex in paper_resolver)
+_ABBREV_TITLE = {
+    "mae": "Masked Autoencoders Are Scalable",
+    "vit": "An Image is Worth 16x16",
+    "deit": "Training data-efficient image transformers",
+    "dino": "Emerging Properties in Self-Supervised",
+    "beit": "BERT Pre-Training of Image",
+    "swin": "Swin Transformer",
+    "clip": "Learning Transferable Visual",
+    "detr": "End-to-End Object Detection",
+}
+
+
+def _resolve_paper(mention: str) -> str | None:
+    """Resolve paper mention to paper_id, trying abbreviation map first."""
+    title_frag = _ABBREV_TITLE.get(mention.lower())
+    pid = find_paper_id(title_frag) if title_frag else None
+    return pid or find_paper_id(mention)
+
 
 def answer(question: str, budget_mode=None) -> dict:
     q = question.lower()
@@ -36,14 +55,14 @@ def answer(question: str, budget_mode=None) -> dict:
                 candidates.append(name)
         ids = []
         for mention in candidates[:2]:
-            pid = find_paper_id(mention)
+            pid = _resolve_paper(mention)
             if pid and pid not in ids:
                 ids.append(pid)
         # Also try generic paper mention extraction
         if len(ids) < 2:
             paper_mentions = re.findall(r'(?:the\s+)?([A-Z][A-Za-z0-9\s-]{2,40}?)\s+paper', question)
             for mention in paper_mentions:
-                pid = find_paper_id(mention.strip())
+                pid = _resolve_paper(mention.strip())
                 if pid and pid not in ids:
                     ids.append(pid)
         if len(ids) >= 2:
@@ -76,6 +95,22 @@ def answer(question: str, budget_mode=None) -> dict:
                 return {"answer": answer_text.strip(), "evidence": builders}
             else:
                 return {"answer": f"No corpus papers were found to directly cite '{src_title}'.", "evidence": []}
+
+    if any(p in q for p in ["most isolated", "fewest citations", "least cited", "lowest cited",
+                             "cited by the fewest", "fewest other", "not cited"]):
+        results = most_cited_in_corpus(top_n=200)
+        if not results:
+            return {"answer": "Citation graph data not available.", "evidence": []}
+        bottom = sorted(results, key=lambda r: r["in_corpus_citations"])[:10]
+        zero = [r for r in bottom if r["in_corpus_citations"] == 0]
+        display = zero if zero else bottom
+        answer_text = "Papers cited by the fewest other corpus papers (most isolated):\n"
+        for r in display:
+            answer_text += f"  • {r['title']} ({r['year']}): {r['in_corpus_citations']} inner-corpus citations\n"
+        evidence = [{"paper_id": r["paper_id"], "title": r["title"], "year": r["year"],
+                     "section": "citation_graph", "quote": f"{r['in_corpus_citations']} inner-corpus citations"}
+                    for r in display]
+        return {"answer": answer_text.strip(), "evidence": evidence}
 
     # Default: return top cited papers (call directly to avoid recursion)
     results = most_cited_in_corpus(top_n=5)

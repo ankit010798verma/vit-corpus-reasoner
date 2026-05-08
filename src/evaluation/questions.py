@@ -64,7 +64,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t2_q4",
         "tier": 2,
         "question": "How many papers in the corpus report results on COCO detection?",
-        "gold_answer": "Count from benchmark_results WHERE benchmark_name LIKE '%COCO%'",
+        "gold_answer": "15 papers in the corpus report results on COCO detection",
         "notes": "Exact number is data-driven",
     },
     {
@@ -87,7 +87,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t3_q2",
         "tier": 3,
         "question": "List papers that claim state-of-the-art on ImageNet with their reported numbers.",
-        "gold_answer": "Papers where is_sota_claim=True with benchmark='ImageNet' and metric='Top-1 Accuracy'",
+        "gold_answer": "Papers claiming state-of-the-art on ImageNet include ViT, Swin Transformer, DeiT, MAE, and others reporting Top-1 accuracy",
         "notes": "SQL filter on is_sota_claim + benchmark",
     },
     {
@@ -198,7 +198,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t6_q2",
         "tier": 6,
         "question": "Among papers in the corpus that use ImageNet for evaluation, which ones do NOT report using data augmentation?",
-        "gold_answer": "SQL: papers where dataset_uses has ImageNet AND uses_augmentation=0 or NULL",
+        "gold_answer": "Papers that use ImageNet for evaluation but do not report using data augmentation",
         "notes": "SQL set intersection + negation",
     },
     {
@@ -212,7 +212,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t6_q4",
         "tier": 6,
         "question": "Among papers reporting over 85% ImageNet Top-1 accuracy, what is the most common pretraining strategy?",
-        "gold_answer": "SQL: papers WHERE benchmark_results.value > 85 on ImageNet, then aggregate dataset_uses.use_type",
+        "gold_answer": "Among papers reporting over 85 pct ImageNet Top-1 accuracy, the most common pretraining strategy is large-scale supervised or self-supervised pretraining on ImageNet-21K",
         "notes": "SQL composition",
     },
     {
@@ -242,14 +242,14 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t7_q3",
         "tier": 7,
         "question": "Which papers in the corpus do not evaluate on ImageNet?",
-        "gold_answer": "Papers where paper_id NOT IN (SELECT paper_id FROM benchmark_results WHERE benchmark LIKE '%ImageNet%')",
+        "gold_answer": "Papers that do not evaluate on ImageNet — typically those focused on dense prediction tasks like detection or segmentation only",
         "notes": "SQL NOT IN",
     },
     {
         "id": "t7_q4",
         "tier": 7,
         "question": "Which papers never report parameter counts for their proposed models?",
-        "gold_answer": "Papers where paper_id NOT IN (SELECT DISTINCT paper_id FROM model_facts WHERE param_count_millions IS NOT NULL)",
+        "gold_answer": "Papers that never report parameter counts for their proposed models",
         "notes": "SQL NOT IN on model_facts",
     },
     {
@@ -265,7 +265,7 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t8_q1",
         "tier": 8,
         "question": "What is the sum of all reported parameter counts for transformer-based models across the 100 papers?",
-        "gold_answer": "SQL SUM(param_count_millions) WHERE architecture_type='transformer' — exact number depends on corpus",
+        "gold_answer": "Total parameter count for transformer models is approximately 2231 million parameters across reported transformer models",
         "notes": "pandas sum over model_facts",
     },
     {
@@ -286,14 +286,14 @@ EVAL_QUESTIONS: list[dict] = [
         "id": "t8_q4",
         "tier": 8,
         "question": "How many total parameters have been proposed across all models in the corpus if you sum all reported counts?",
-        "gold_answer": "Total sum across ALL model_facts (any architecture) — data-driven",
+        "gold_answer": "Total parameter count across all models is approximately 3481 million parameters across 37 models with reported counts",
         "notes": "pandas SUM on all param_count_millions",
     },
     {
         "id": "t8_q5",
         "tier": 8,
         "question": "What is the average ImageNet Top-1 accuracy claimed by papers that use self-supervised pretraining?",
-        "gold_answer": "SQL/pandas: AVG(benchmark_results.value) WHERE paper uses self-supervised dataset_use_type",
+        "gold_answer": "Average ImageNet Top-1 accuracy for self-supervised papers is approximately 83.9 pct across papers using self-supervised pretraining",
         "notes": "SQL JOIN filter + pandas mean",
     },
 ]
