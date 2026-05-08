@@ -34,9 +34,13 @@ def answer(question: str, budget_mode=None) -> dict:
         count = len(df)
         breakdown = df.groupby("arch")["params"].agg(["sum", "mean", "count"]).round(1)
 
+        breakdown_lines = "\n".join(
+            f"  • {arch}: {row['sum']:.1f}M total, {row['mean']:.1f}M avg, {int(row['count'])} models"
+            for arch, row in breakdown.iterrows()
+        )
         answer_text = (
-            f"Total parameter count: {total:.1f}M parameters across {count} reported models.\n"
-            f"Breakdown by architecture:\n{breakdown.to_string()}"
+            f"Total parameter count: {total:.1f}M parameters across {count} reported models.\n\n"
+            f"Breakdown by architecture:\n{breakdown_lines}"
         )
         return {
             "answer": answer_text,
@@ -131,15 +135,74 @@ def answer(question: str, budget_mode=None) -> dict:
                                "section": "benchmark_results", "quote": f"avg={row[0]:.1f}%"}],
             }
 
+    # Citation count queries
+    if any(w in q for w in ["citation", "cited", "cite"]):
+        sql = "SELECT id, title, citation_count, year FROM papers WHERE citation_count IS NOT NULL ORDER BY citation_count DESC"
+        with engine.connect() as conn:
+            rows = conn.execute(text(sql)).fetchall()
+        if rows:
+            df = pd.DataFrame(rows, columns=["id", "title", "citations", "year"])
+            top = df.iloc[0]
+            desc = df["citations"].describe().round(0)
+            if any(w in q for w in ["max", "most", "highest", "top"]):
+                answer_text = (
+                    f"The most cited paper in the corpus is:\n"
+                    f"  \"{top['title']}\" ({int(top['year']) if top['year'] else 'N/A'}) — {int(top['citations'])} citations\n\n"
+                    f"Corpus-wide citation stats ({len(df)} papers):\n"
+                    f"  • Max: {int(desc['max'])}\n"
+                    f"  • Mean: {desc['mean']:.0f}\n"
+                    f"  • Median: {desc['50%']:.0f}\n"
+                    f"  • Min: {int(desc['min'])}"
+                )
+                evidence_paper = top
+            elif any(w in q for w in ["min", "least", "lowest", "fewest"]):
+                bottom = df.iloc[-1]
+                answer_text = (
+                    f"The least cited paper in the corpus is:\n"
+                    f"  \"{bottom['title']}\" ({int(bottom['year']) if bottom['year'] else 'N/A'}) — {int(bottom['citations'])} citations\n\n"
+                    f"Corpus-wide citation stats ({len(df)} papers):\n"
+                    f"  • Min: {int(desc['min'])}\n"
+                    f"  • Mean: {desc['mean']:.0f}\n"
+                    f"  • Max: {int(desc['max'])}"
+                )
+                evidence_paper = bottom
+            else:
+                answer_text = (
+                    f"Citation count statistics across {len(df)} papers:\n"
+                    f"  • Mean: {desc['mean']:.0f}\n"
+                    f"  • Median: {desc['50%']:.0f}\n"
+                    f"  • Min: {int(desc['min'])}\n"
+                    f"  • Max: {int(desc['max'])}\n"
+                    f"  • Top paper: \"{top['title']}\" — {int(top['citations'])} citations"
+                )
+                evidence_paper = top
+            return {
+                "answer": answer_text,
+                "data": {"max_citations": int(desc["max"]), "paper_count": len(df)},
+                "evidence": [{
+                    "paper_id": evidence_paper["id"],
+                    "title": evidence_paper["title"],
+                    "year": int(evidence_paper["year"]) if evidence_paper["year"] else "",
+                    "section": "papers",
+                    "quote": f"{int(evidence_paper['citations'])} citations — highest in the corpus",
+                }],
+            }
+
     # Generic: describe all numeric data
     sql = "SELECT param_count_millions FROM model_facts WHERE param_count_millions IS NOT NULL"
     with engine.connect() as conn:
         rows = conn.execute(text(sql)).fetchall()
     if rows:
         df = pd.DataFrame(rows, columns=["params"])
-        return {
-            "answer": f"Quantitative summary of model parameters:\n{df.describe().round(1).to_string()}",
-            "evidence": [],
-        }
+        desc = df.describe().round(1)
+        summary = (
+            f"Quantitative summary of model parameters ({int(desc.loc['count', 'params'])} models):\n"
+            f"  • Mean: {desc.loc['mean', 'params']:.1f}M\n"
+            f"  • Median: {desc.loc['50%', 'params']:.1f}M\n"
+            f"  • Min: {desc.loc['min', 'params']:.1f}M\n"
+            f"  • Max: {desc.loc['max', 'params']:.1f}M\n"
+            f"  • Std dev: {desc.loc['std', 'params']:.1f}M"
+        )
+        return {"answer": summary, "evidence": []}
 
     return {"answer": "Could not identify the specific computation requested.", "evidence": []}

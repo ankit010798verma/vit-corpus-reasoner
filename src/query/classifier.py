@@ -36,7 +36,7 @@ TIER_PATTERNS: dict[int, list[str]] = {
         r"\b\d{4}\s+versus\s+\d{4}\b",
     ],
     5: [
-        r"\bmost\s+cited\s+(by|within|in)\b",
+        r"\bmost\s+cited\b",
         r"\bmost\s+influential.{0,40}\bcorpus\b",
         r"\bcitation\s+(chain|path)\b",
         r"\bpath\s+from\b.{0,40}\bto\b",
@@ -44,6 +44,8 @@ TIER_PATTERNS: dict[int, list[str]] = {
         r"\bcites\b.{0,40}\bpaper\b",
         r"\bwhich\s+paper.{0,30}\bcited\s+by\s+other\b",
         r"\btop\s+\d+\s+(most\s+)?(cited|influential)\b",
+        r"\bhighly\s+cited\b",
+        r"\bpagerank\b",
     ],
     6: [
         r"\bwhich\s+papers?.{0,80}\balso\b",
@@ -71,6 +73,10 @@ TIER_PATTERNS: dict[int, list[str]] = {
         r"\baverage\b.{0,50}\b(accuracy|top-1|imagenet).{0,30}\b(paper|model|claim)\b",
         r"\bmean\b.{0,50}\b(accuracy|parameter|param)\b",
         r"\bsum\s+(?:all|the)\s+\w+\s+(count|size)\b",
+        r"\bcitation\s+count\b",
+        r"\b(max|min|maximum|minimum|highest|lowest|least)\s+cit(ation|ations|ed)\b",
+        r"\bcitation\s+(stat|stats|statistics|distribution)\b",
+        r"\b(average|mean|median)\s+citations?\b",
     ],
 }
 
