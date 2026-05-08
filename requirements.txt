@@ -1,0 +1,41 @@
+# Core
+anthropic>=0.40.0
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0
+pydantic-settings>=2.6.0
+python-dotenv>=1.0.0
+
+# PDF Processing
+pymupdf>=1.24.0
+
+# Embeddings (local — free)
+sentence-transformers>=3.3.0
+torch>=2.5.0
+
+# Vector DB
+chromadb>=0.5.23
+
+# Keyword Search
+rank-bm25>=0.2.2
+
+# Graph
+networkx>=3.4.0
+
+# Data
+sqlalchemy>=2.0.36
+pandas>=2.2.0
+numpy>=2.1.0
+scipy>=1.14.0
+
+# HTTP / API calls
+httpx>=0.28.0
+requests>=2.32.0
+
+# Utilities
+tqdm>=4.67.0
+matplotlib>=3.9.0
+rapidfuzz>=3.10.0
+
+# Dev
+pytest>=8.3.0
